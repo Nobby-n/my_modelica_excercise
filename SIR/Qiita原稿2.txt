@@ -1,0 +1,71 @@
+# 基本のSIRモデルにワクチンの効果を加えてみる
+既出記事、「[OpenModelicaで感染症の数理モデル「SIRモデル」を実装する](https://qiita.com/nobby-n/items/48803407f67f62b2c8f9)」で作成したモデルにワクチンの効果を加えたモデルを作成してみます。
+
+このワクチンモデルの前提条件
+- 「S : 感染可能者」を安全に「R : 免疫を獲得した回復者」に移行させる効果を持つ
+- 一度免疫を獲得した者は、免疫を失うこともない
+- ワクチンの効果は「ワクチン自体の有効性（S→Rに移行できる割合）」と「接種率（全体のうち接種を受けた割合）」の積で決まるものとする
+- 感染が始まるまでにワクチン接種は終わっているものとする
+
+パラメータとして「vaccine_effect = ワクチン自体の有効性（S→Rに移行できる割合）」、「vaccine_rate = 接種率（全体のうち接種を受けた割合）」を設定可能とします。
+
+```matlab
+parameter Real vaccine_effect = 1.0 "Effect of Vaccine";
+parameter Real vaccine_rate = 0.7 "Vaccination rate";
+```
+
+等式部分は以下のとおり
+SIRモデルの前段で S を一定の比率で R に変えるだけとし、I には影響しないという単純なものです。
+抗体が時間とともに失われたり、感染が起きている間にワクチン投与がされるような場合では、このモデルでは対応できませんが、ワクチン接種の効果を見るだけのものと割り切っています。
+
+```matlab
+equation
+  Vy = vaccine_effect * vaccine_rate;
+  Sy = Si - Si * Vy;
+  Iy = Ii;
+  Ry = Ri + Si * Vy;
+```
+
+ワクチンのコード全体はこうなります。
+
+```matlab
+class cl_Vaccine
+  extends Modelica.Blocks.Icons.Block;
+  parameter Real vaccine_effect = 1.0 "Effect of Vaccine";
+  parameter Real vaccine_rate = 0.7 "Vaccination rate";
+  Modelica.Blocks.Interfaces.RealInput Si "Connector of initial S(Susceptible)" annotation(
+      Placement(visible = true, transformation(origin = {-100, 60}, extent = {{-20, -20}, {20, 20}}, rotation = 0), iconTransformation(origin = {-120, 60}, extent = {{-20, -20}, {20, 20}}, rotation = 0)));
+  Modelica.Blocks.Interfaces.RealInput Ii "Connector of initial I (Infectious)" annotation(
+      Placement(visible = true, transformation(origin = {-100, 0}, extent = {{-20, -20}, {20, 20}}, rotation = 0), iconTransformation(origin = {-120, 0}, extent = {{-20, -20}, {20, 20}}, rotation = 0)));
+  Modelica.Blocks.Interfaces.RealInput Ri "Connector of initial R (Removed)" annotation(
+      Placement(visible = true, transformation(origin = {-100, -62}, extent = {{-20, -20}, {20, 20}}, rotation = 0), iconTransformation(origin = {-120, -62}, extent = {{-20, -20}, {20, 20}}, rotation = 0)));
+  Modelica.Blocks.Interfaces.RealOutput Sy "Output connector of S(Susceptible)" annotation(
+      Placement(visible = true, transformation(origin = {100, 60}, extent = {{-10, -10}, {10, 10}}, rotation = 0), iconTransformation(origin = {110, 62}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
+  Modelica.Blocks.Interfaces.RealOutput Iy "Output connector of I (Infectious)" annotation(
+      Placement(visible = true, transformation(origin = {100, 0}, extent = {{-10, -10}, {10, 10}}, rotation = 0), iconTransformation(origin = {110, 0}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
+  Modelica.Blocks.Interfaces.RealOutput Ry "Output connector of R (Removed)" annotation(
+      Placement(visible = true, transformation(origin = {100, -60}, extent = {{-10, -10}, {10, 10}}, rotation = 0), iconTransformation(origin = {110, -60}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
+  Modelica.Blocks.Interfaces.RealOutput Vy "Output connector of Vaccination rate" annotation(
+      Placement(visible = true, transformation(origin = {0, -100}, extent = {{-10, -10}, {10, 10}}, rotation = -90), iconTransformation(origin = {0, -110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
+  equation
+    Vy = vaccine_effect * vaccine_rate;
+    Sy = Si - Si * Vy;
+    Iy = Ii;
+    Ry = Ri + Si * Vy;
+  annotation(
+      Icon(graphics = {Text(origin = {-22, 24}, extent = {{-52, 32}, {94, -72}}, textString = "Vac")}, coordinateSystem(initialScale = 0.1)));
+end cl_Vaccine;
+```
+
+## ワクチン接種を加えたシミュレーション結果
+基本のSIRモデルの前段に cl_vaccine を入れ、ワクチン接種率を50%、ワクチン自体は接種者を100%抗体保持者に変えられるものとして設定しています。
+これは基本モデルの S、I、R の初期値を（499.5、1、499.5）とするのと同等です。
+![10_SIR_vaccine_model.png](https://qiita-image-store.s3.ap-northeast-1.amazonaws.com/0/620386/95007757-447d-169e-e594-ecf3cd0db585.png)
+
+シミュレーション結果では、50%の接種率で感染者の最大数を1/20程度にできています。
+70%の接種率では、さらに一桁近く下がっていました。
+![11_SIR_vaccine_graph.png](https://qiita-image-store.s3.ap-northeast-1.amazonaws.com/0/620386/52d36d42-29c5-b51f-ce08-b183844bcd70.png)
+
+# まとめ
+OpenModelica でモデル化することで、単純な感染症のモデルに少しずつ要素を加えてシミュレーションすることが容易にできたと思います。
+なお、ここで示した考え方は非常に割り切ったものになっていますので、何か大きな問題があるようでしたらアドバイスをいただけると幸いです。
