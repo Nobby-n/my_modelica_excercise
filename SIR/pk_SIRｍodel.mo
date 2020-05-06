@@ -92,7 +92,7 @@ class cl_SIRreinfect
   equation
     der(Sy) = (-contact_rate * Sy * Iy) + Rlive * reinfect_rate;
     der(Iy) = contact_rate * Sy * Iy - Iy * gamma_const;
-    der(Ry) = Iy * gamma_const - Ry * reinfect_rate;
+    der(Ry) = Iy * gamma_const - Rlive * reinfect_rate;
     Inew = -der(Sy);
     der(Rdead) = Iy * gamma_const * dying_rate;
     Rlive = Ry - Rdead;
@@ -211,7 +211,7 @@ annotation(
       Placement(visible = true, transformation(origin = {-40, 0}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
     Modelica.Blocks.Sources.Step Beta_val_step(height = 0 / 1000, offset = 0.5 / 1000, startTime = 12) annotation(
       Placement(visible = true, transformation(origin = {10, 50}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
-  pk_SIRmodel.cl_SIRreinfect cl_SIRreinfect1(dying_rate = 0.2, reinfect_rate = 0)  annotation(
+  pk_SIRmodel.cl_SIRreinfect cl_SIRreinfect1(dying_rate = 0.2, reinfect_rate = 0.01)  annotation(
       Placement(visible = true, transformation(origin = {30, 0}, extent = {{-10, -10}, {10, 10}}, rotation = 0)));
   equation
     connect(Ii.y, vaccine1.Ii) annotation(
